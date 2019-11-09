@@ -4,15 +4,15 @@ namespace Orleans.Configuration
 {
     public class RabbitMqOptions
     {
-        public string HostName;
-        public int Port;
-        public string VirtualHost;
-        public string UserName;
-        public string Password;
+        public string HostName { get; set; }
+        public int Port { get; set; }
+        public string VirtualHost { get; set; }
+        public string UserName { get; set; }
+        public string Password { get; set; }
 
-        public string QueueNamePrefix;
-        public bool UseQueuePartitioning = DefaultUseQueuePartitioning;
-        public int NumberOfQueues = DefaultNumberOfQueues;
+        public string QueueNamePrefix { get; set; }
+        public bool UseQueuePartitioning { get; set; } = DefaultUseQueuePartitioning;
+        public int NumberOfQueues { get; set; } = DefaultNumberOfQueues;
 
         
         public const bool DefaultUseQueuePartitioning = false;

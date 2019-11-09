@@ -46,10 +46,13 @@ namespace Orleans.Streams
         public IStreamQueueMapper GetStreamQueueMapper() => _mapper;
 
         public static RabbitMqAdapterFactory<TSerializer> Create(IServiceProvider services, string name)
-            => ActivatorUtilities.CreateInstance<RabbitMqAdapterFactory<TSerializer>>(
-                services,
-                name,
-                services.GetOptionsByName<RabbitMqOptions>(name),
-                services.GetOptionsByName<CachingOptions>(name));
+        {
+            var rabbitMqOptions = services.GetOptionsByName<RabbitMqOptions>(name);
+            var cachingOptions = services.GetOptionsByName<CachingOptions>(name);
+
+            var factory = ActivatorUtilities.CreateInstance<RabbitMqAdapterFactory<TSerializer>>(services, name, rabbitMqOptions, cachingOptions);
+
+            return factory;
+        }
     }
 }

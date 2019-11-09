@@ -1,56 +1,58 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Orleans.ApplicationParts;
 using Orleans.Configuration;
 using Orleans.Hosting;
+using Orleans.Providers.Streams.Common;
 using Orleans.Streams;
 using Orleans.Streams.BatchContainer;
 
 namespace Orleans.Streaming
 {
+
     public class SiloRabbitMqStreamConfigurator<TSerializer> : SiloPersistentStreamConfigurator
         where TSerializer : IBatchContainerSerializer, new()
     {
+        [Obsolete]
         public SiloRabbitMqStreamConfigurator(string name, Action<Action<IServiceCollection>> configureDelegate)
-            : base(name, configureDelegate, RabbitMqAdapterFactory<TSerializer>.Create)
+            : this(name, configureDelegate, configureAppPartsDelegate => { })
         {
+
+        }
+
+        public SiloRabbitMqStreamConfigurator(string name, Action<Action<IServiceCollection>> configureServicesDelegate, Action<Action<IApplicationPartManager>> configureAppPartsDelegate)
+            : base(name, configureServicesDelegate, RabbitMqAdapterFactory<TSerializer>.Create)
+        {
+
+            configureAppPartsDelegate(parts =>
+            {
+                parts
+                    .AddFrameworkPart(typeof(RabbitMqAdapter).Assembly)
+                    .AddFrameworkPart(typeof(EventSequenceTokenV2).Assembly);
+            });
+
             ConfigureDelegate(services =>
-                {
-                    services.ConfigureNamedOptionForLogging<RabbitMqOptions>(name)
-                        .AddTransient<IConfigurationValidator>(sp => new RabbitMqOptionsValidator(sp.GetOptionsByName<RabbitMqOptions>(name), name))
-                        .ConfigureNamedOptionForLogging<CachingOptions>(name)
-                        .AddTransient<IConfigurationValidator>(sp => new CachingOptionsValidator(sp.GetOptionsByName<CachingOptions>(name), name));
-                });
+            {
+                services
+                    .ConfigureNamedOptionForLogging<RabbitMqOptions>(name)
+                    .ConfigureNamedOptionForLogging<CachingOptions>(name)
+                    .AddTransient<IConfigurationValidator>(sp => new RabbitMqOptionsValidator(sp.GetOptionsByName<RabbitMqOptions>(name), name))
+                    .AddTransient<IConfigurationValidator>(sp => new CachingOptionsValidator(sp.GetOptionsByName<CachingOptions>(name), name));
+            });
         }
 
-        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(string host, int port, string virtualHost, string user, string password, string queueName, bool useQueuePartitioning = RabbitMqOptions.DefaultUseQueuePartitioning, int numberOfQueues = RabbitMqOptions.DefaultNumberOfQueues)
+        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(Action<OptionsBuilder<RabbitMqOptions>> configureOptions)
         {
-            this.Configure<RabbitMqOptions>(ob => ob.Configure(options =>
-                {
-                    options.HostName = host;
-                    options.Port = port;
-                    options.VirtualHost = virtualHost;
-                    options.UserName = user;
-                    options.Password = password;
-                    options.QueueNamePrefix = queueName;
-                    options.UseQueuePartitioning = useQueuePartitioning;
-                    options.NumberOfQueues = numberOfQueues;
-                }));
+            this.Configure(configureOptions);
+
             return this;
         }
 
-        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureCache(int cacheSize)
+        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureCache(Action<OptionsBuilder<CachingOptions>> configureOptions)
         {
-            this.Configure<CachingOptions>(ob => ob.Configure(options => options.CacheSize = cacheSize));
-            return this;
-        }
+            this.Configure(configureOptions);
 
-        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureCache(int cacheSize, TimeSpan cacheFillingTimeout)
-        {
-            this.Configure<CachingOptions>(ob => ob.Configure(options =>
-                {
-                    options.CacheSize = cacheSize;
-                    options.CacheFillingTimeout = cacheFillingTimeout;
-                }));
             return this;
         }
     }
@@ -58,34 +60,27 @@ namespace Orleans.Streaming
     public class ClusterClientRabbitMqStreamConfigurator<TSerializer> : ClusterClientPersistentStreamConfigurator
         where TSerializer : IBatchContainerSerializer, new()
     {
-        public ClusterClientRabbitMqStreamConfigurator(string name, IClientBuilder builder)
-            : base(name, builder, RabbitMqAdapterFactory<TSerializer>.Create)
+        public ClusterClientRabbitMqStreamConfigurator(string name, IClientBuilder clientBuilder)
+            : base(name, clientBuilder, RabbitMqAdapterFactory<TSerializer>.Create)
         {
-            builder
-                .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(RabbitMqAdapterFactory<TSerializer>).Assembly))
-                .ConfigureServices(services => services
-                    .ConfigureNamedOptionForLogging<RabbitMqOptions>(name)
-                    .AddTransient<IConfigurationValidator>(sp => new RabbitMqOptionsValidator(sp.GetOptionsByName<RabbitMqOptions>(name), name))
-                    .ConfigureNamedOptionForLogging<HashRingStreamQueueMapperOptions>(name));
-
+            clientBuilder
+                .ConfigureApplicationParts(parts =>
+                {
+                    parts
+                        .AddFrameworkPart(typeof(RabbitMqAdapterFactory<TSerializer>).Assembly)
+                        .AddApplicationPart(typeof(EventSequenceTokenV2).Assembly);
+                })
+                .ConfigureServices(services =>
+                {
+                    services
+                        .ConfigureNamedOptionForLogging<RabbitMqOptions>(name)
+                        .AddTransient<IConfigurationValidator>(sp => new RabbitMqOptionsValidator(sp.GetOptionsByName<RabbitMqOptions>(name), name));
+                });
         }
 
-        public ClusterClientRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(
-            string host, int port, string virtualHost, string user, string password, string queueName,
-            bool useQueuePartitioning = RabbitMqOptions.DefaultUseQueuePartitioning,
-            int numberOfQueues = RabbitMqOptions.DefaultNumberOfQueues)
+        public ClusterClientRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(Action<OptionsBuilder<RabbitMqOptions>> configureOptions)
         {
-            this.Configure<RabbitMqOptions>(ob => ob.Configure(options =>
-            {
-                options.HostName = host;
-                options.Port = port;
-                options.VirtualHost = virtualHost;
-                options.UserName = user;
-                options.Password = password;
-                options.QueueNamePrefix = queueName;
-                options.UseQueuePartitioning = useQueuePartitioning;
-                options.NumberOfQueues = numberOfQueues;
-            }));
+            this.Configure(configureOptions);
             return this;
         }
     }
