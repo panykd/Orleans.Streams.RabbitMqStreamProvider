@@ -42,6 +42,24 @@ namespace Orleans.Streaming
             });
         }
 
+        public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(
+            string host, int port, string virtualHost, string user, string password, string queueName,
+            bool useQueuePartitioning = RabbitMqOptions.DefaultUseQueuePartitioning,
+            int numberOfQueues = RabbitMqOptions.DefaultNumberOfQueues)
+        {
+            return ConfigureRabbitMq(configureOptions => configureOptions.Configure(options =>
+            {
+                options.HostName = host;
+                options.Port = port;
+                options.VirtualHost = virtualHost;
+                options.UserName = user;
+                options.Password = password;
+                options.QueueNamePrefix = queueName;
+                options.UseQueuePartitioning = useQueuePartitioning;
+                options.NumberOfQueues = numberOfQueues;
+            }));
+        }
+
         public SiloRabbitMqStreamConfigurator<TSerializer> ConfigureRabbitMq(Action<OptionsBuilder<RabbitMqOptions>> configureOptions)
         {
             this.Configure(configureOptions);
