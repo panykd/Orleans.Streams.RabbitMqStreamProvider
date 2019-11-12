@@ -10,7 +10,7 @@ namespace Orleans.Hosting
         /// <summary>
         /// Configure client to use RMQ persistent streams, using the <see cref="DefaultBatchContainerSerializer"/>.
         /// </summary>
-        [Obsolete("Use 'UseRabbitMqSteams'")]
+        [Obsolete("Use 'UseRabbitMqStreams'")]
         public static IClientBuilder AddRabbitMqStream(this IClientBuilder builder, string name, Action<ClusterClientRabbitMqStreamConfigurator<DefaultBatchContainerSerializer>> configure = null)
         {
             return UseRabbitMqStreams(builder, name, configure);
@@ -19,7 +19,7 @@ namespace Orleans.Hosting
         /// <summary>
         /// Configure client to use RMQ persistent streams.
         /// </summary>
-        [Obsolete("Use 'UseRabbitMqSteams'")]
+        [Obsolete("Use 'UseRabbitMqStreams'")]
         public static IClientBuilder AddRabbitMqStream<TSerializer>(this IClientBuilder builder, string name, Action<ClusterClientRabbitMqStreamConfigurator<TSerializer>> configure = null)
             where TSerializer : IBatchContainerSerializer, new()
         {
@@ -31,7 +31,7 @@ namespace Orleans.Hosting
         /// </summary>
         public static IClientBuilder UseRabbitMqStreams(this IClientBuilder builder, string name, Action<RabbitMqOptions> options)
         {
-            return UseRabbitMqStream<DefaultBatchContainerSerializer>(builder, name, options);
+            return UseRabbitMqStreams<DefaultBatchContainerSerializer>(builder, name, options);
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Orleans.Hosting
         public static IClientBuilder UseRabbitMqStreams<TSerializer>(this IClientBuilder builder, string name, Action<RabbitMqOptions> options)
             where TSerializer : IBatchContainerSerializer, new()
         {
-            return builder.UseRabbitMqStream<TSerializer>(name, b => b.ConfigureRabbitMq(ob => ob.Configure(options)));
+            return builder.UseRabbitMqStreams<TSerializer>(name, b => b.ConfigureRabbitMq(ob => ob.Configure(options)));
 
         }
 
@@ -49,7 +49,7 @@ namespace Orleans.Hosting
         /// </summary>
         public static IClientBuilder UseRabbitMqStreams(this IClientBuilder builder, string name, Action<ClusterClientRabbitMqStreamConfigurator<DefaultBatchContainerSerializer>> configure = null)
         {
-            return UseRabbitMqStream<DefaultBatchContainerSerializer>(builder, name, configure);
+            return UseRabbitMqStreams<DefaultBatchContainerSerializer>(builder, name, configure);
         }
 
         /// <summary>
