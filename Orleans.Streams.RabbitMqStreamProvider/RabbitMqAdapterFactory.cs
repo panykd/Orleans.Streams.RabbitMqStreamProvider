@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans.Configuration;
+using Orleans.Providers.Streams.Common;
 using Orleans.Serialization;
 using Orleans.Streams.BatchContainer;
-using Orleans.Streams.Cache;
 
 namespace Orleans.Streams
 {
@@ -29,7 +29,9 @@ namespace Orleans.Streams
             if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
             if (loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
 
-            _cache = new ConcurrentQueueAdapterCache(cachingOptions.CacheSize);
+            _cache = new SimpleQueueAdapterCache(new SimpleQueueCacheOptions() {CacheSize = cachingOptions.CacheSize}, providerName, loggerFactory);
+
+
             _mapper = new HashRingBasedStreamQueueMapper(new HashRingStreamQueueMapperOptions { TotalQueueCount = rmqOptions.NumberOfQueues }, rmqOptions.QueueNamePrefix);
             _failureHandler = Task.FromResult<IStreamFailureHandler>(new NoOpStreamDeliveryFailureHandler(false));
 
@@ -46,10 +48,13 @@ namespace Orleans.Streams
         public IStreamQueueMapper GetStreamQueueMapper() => _mapper;
 
         public static RabbitMqAdapterFactory<TSerializer> Create(IServiceProvider services, string name)
-            => ActivatorUtilities.CreateInstance<RabbitMqAdapterFactory<TSerializer>>(
-                services,
-                name,
-                services.GetOptionsByName<RabbitMqOptions>(name),
-                services.GetOptionsByName<CachingOptions>(name));
+        {
+            var rabbitMqOptions = services.GetOptionsByName<RabbitMqOptions>(name);
+            var cachingOptions = services.GetOptionsByName<CachingOptions>(name);
+
+            var factory = ActivatorUtilities.CreateInstance<RabbitMqAdapterFactory<TSerializer>>(services, name, rabbitMqOptions, cachingOptions);
+
+            return factory;
+        }
     }
 }
